@@ -5,11 +5,6 @@
 #Author         : Mr.Kien Le    
 ################################################################################
 
-eval `date "+day=%d; month=%m; year=%Y"`
-INSTFIL="$year-$month-$day"
-IPTABLES=/sbin/iptables
-IPTABLES_SAVE=/sbin/iptables-save
-
 # Disabling SeLinux for installation(Remains disabled untill reboot ar manual enable). 
 setenforce 0
 sed -i 's/^SELINUX=.*/SELINUX=disabled/g' /etc/selinux/config
@@ -25,13 +20,6 @@ yum -y groupinstall core base "Development Tools"
 
 #Installing additional required dependencies
 yum -y install automake gcc gcc-c++ ncurses-devel openssl-devel libxml2-devel unixODBC-devel libcurl-devel libogg-devel libvorbis-devel speex-devel spandsp-devel freetds-devel net-snmp-devel iksemel-devel corosynclib-devel newt-devel popt-devel libtool-ltdl-devel lua-devel sqlite-devel radiusclient-ng-devel portaudio-devel neon-devel libical-devel openldap-devel gmime-devel mysql-devel bluez-libs-devel jack-audio-connection-kit-devel gsm-devel libedit-devel libuuid-devel jansson-devel libsrtp-devel git subversion libxslt-devel kernel-devel audiofile-devel gtk2-devel libtiff-devel libtermcap-devel ilbc-devel bison php php-mysql php-process php-pear php-mbstring php-xml php-gd tftp-server httpd sox tzdata mysql-connector-odbc mariadb mariadb-server fail2ban jwhois xmlstarlet ghostscript libtiff-tools python-devel patch
-
-# Install $IPTABLES
-systemctl stop firewalld
-systemctl disable firewalld
-yum -y install iptables-services
-systemctl start iptables
-systemctl enable iptables
 
 # Compiling and Installing jansson
 cd /usr/src
@@ -98,22 +86,10 @@ chown -R asterisk. /var/www/
 echo -e "\e[32m asterisk Install OK!\e[m"
 
 # Alow porrt access asterisk and drop scan asterisk amonymous
-$IPTABLES_SAVE > /usr/local/etc/iptables.last-$INSTFIL.log
-$IPTABLES -P INPUT ACCEPT
-$IPTABLES -X
-$IPTABLES -Z
-$IPTABLES -A INPUT -s 127.0.0.1 -j ACCEPT
-$IPTABLES -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-$IPTABLES -A INPUT -p udp -m tcp --dport 22 -j ACCEPT
-$IPTABLES -A INPUT -p udp -m udp --dport 5060 -j ACCEPT
-$IPTABLES -A INPUT -p udp -m udp --dport 10000:20000 -j ACCEPT
-$IPTABLES -A INPUT -p udp -m udp --dport 5060 -m string --string "sipvicious" --algo bm --to 65535 -j DROP
-$IPTABLES -A INPUT -p udp -m udp --dport 5060 -m string --string "sipsak" --algo bm --to 65535 -j DROP
-$IPTABLES -A INPUT -p udp -m udp --dport 5060 -m string --string "iWar" --algo bm --to 65535 -j DROP
-$IPTABLES -A INPUT -p udp -m udp --dport 5060 -m string --string "sundayddr" --algo bm --to 65535 -j DROP
-$IPTABLES -A INPUT -p udp -m udp --dport 5060 -m string --string "sip-scan" --algo bm --to 65535 -j DROP
-$IPTABLES -A INPUT -p udp -m udp --dport 5060 -m string --string "friendly-scanner" --algo bm --to 65535 -j DROP
-$IPTABLES -A INPUT -p udp -j DROP
-$IPTABLES -A INPUT -p tcp -j DROP
-
+systemctl enable firewalld
+systemctl restart firewalld
+firewall-cmd --permanent --zone=public --add-port=5060-5061/tcp
+firewall-cmd --permanent --zone=public --add-port=5060-5061/udp
+firewall-cmd --permanent --zone=public --add-port=10000-20000/udp
+firewall-cmd --reload
 reboot
